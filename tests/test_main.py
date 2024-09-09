@@ -1,11 +1,15 @@
+from httpx import ASGITransport, AsyncClient
+import pytest
 import unittest
 from fastapi.testclient import TestClient
 from main import app
 
 client = TestClient(app)
 
+def get_async_client():
+    return AsyncClient(transport=ASGITransport(app), base_url="http://test")
 
-class TestRateLimiter(unittest.TestCase):
+class TestRateLimiter(unittest.IsolatedAsyncioTestCase):
     """
     E2E tests for the FastAPI rate limiter API.
     These tests verify the behavior of the API endpoints for configuring the rate limiter
@@ -26,40 +30,44 @@ class TestRateLimiter(unittest.TestCase):
         # Ensure the response contains the correct configuration
         self.assertEqual(response.json(), {"interval": 60, "limit": 10})
 
-    def test_is_rate_limited_false_response(self):
+    @pytest.mark.anyio
+    async def test_is_rate_limited_false_response(self):
         """
         Test the /api/is_rate_limited/{unique_token} endpoint.
         Verifies that a user is not rate-limited when they have not exceeded the limit.
         """
-        # Send a GET request to check if the user is rate-limited
-        response = client.get("/api/is_rate_limited/123")
+        async with get_async_client() as client:
+            # Send a GET request to check if the user is rate-limited
+            response = await client.get("/api/is_rate_limited/123")
 
-        # Ensure the request was successful (status code 200)
-        self.assertEqual(response.status_code, 200)
+            # Ensure the request was successful (status code 200)
+            self.assertEqual(response.status_code, 200)
 
-        # Ensure the user is not rate-limited (response is "false")
-        self.assertEqual(response.text, "false")
+            # Ensure the user is not rate-limited (response is "false")
+            self.assertEqual(response.text, "false")
 
-    def test_is_rate_limited_true_response(self):
+    @pytest.mark.anyio
+    async def test_is_rate_limited_true_response(self):
         """
         Test the /api/is_rate_limited/{unique_token} endpoint.
         First, configure the rate limiter with a limit of 1 request per 10 seconds.
         Then, send two requests and verify that the second request is rate-limited.
         """
-        # Configure the rate limiter with an interval of 10 seconds and a limit of 1 request
-        client.post("/api/configure", json={"interval": 10, "limit": 1})
+        async with get_async_client() as client:
+            # Configure the rate limiter with an interval of 10 seconds and a limit of 1 request
+            await client.post("/api/configure", json={"interval": 10, "limit": 1})
 
-        # Send the first request (should not be rate-limited)
-        client.get("/api/is_rate_limited/123")
+            # Send the first request (should not be rate-limited)
+            await client.get("/api/is_rate_limited/123")
 
-        # Send the second request (should now be rate-limited)
-        response = client.get("/api/is_rate_limited/123")
+            # Send the second request (should now be rate-limited)
+            response = await client.get("/api/is_rate_limited/123")
 
-        # Ensure the request was successful (status code 200)
-        self.assertEqual(response.status_code, 200)
+            # Ensure the request was successful (status code 200)
+            self.assertEqual(response.status_code, 200)
 
-        # Ensure the user is now rate-limited (response is "true")
-        self.assertEqual(response.text, "true")
+            # Ensure the user is now rate-limited (response is "true")
+            self.assertEqual(response.text, "true")
 
     def test_configure_rate_limiter_invalid_interval(self):
         """

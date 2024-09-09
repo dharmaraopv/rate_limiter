@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Path, BackgroundTasks
+from fastapi import FastAPI, Path
 
 import time
 
@@ -20,8 +20,7 @@ def configure_rate_limiter(config: Config):
 
 
 @app.get("/api/is_rate_limited/{unique_token}")
-def is_rate_limited(
-        background_tasks: BackgroundTasks,
+async def is_rate_limited(
         unique_token: str = Path(...,
                                  title="Unique Token",
                                  description="Unique token for the user",
@@ -34,4 +33,4 @@ def is_rate_limited(
     :return: Boolean indicating if the user is rate-limited. Returns "true" or "false" in the api response
     """
     now = time.time()
-    return rate_limiter.is_rate_limited(unique_token, now, background_tasks)
+    return await rate_limiter.is_rate_limited(unique_token, now)

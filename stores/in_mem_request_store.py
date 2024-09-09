@@ -44,13 +44,13 @@ class InMemRequestStore(RequestStore):
         self.num_slots = num_slots
         self.store = LRUStore(capacity=capacity)
 
-    def get_all_counts(self, key, slot):
+    async def get_all_counts(self, key, slot):
         request_counter = self.store.get(key)
         if request_counter is None:
-            return []
+            return {}
         return request_counter.get_all_counts(slot)
 
-    def update_counts(self, key, slot, ttl):
+    async def update_counts(self, key, slot, ttl):
         request_counter = self.store.get(key)
         if request_counter is None:
             request_counter = RequestCounter(num_slots=self.num_slots)

@@ -1,4 +1,4 @@
-from redis import Redis
+from redis.asyncio import Redis
 import settings
 from stores.request_store import RequestStore
 
@@ -24,7 +24,7 @@ class RedisRequestStore(RequestStore):
         self.r = Redis.from_url(redis_url)
         self.num_slots = num_slots
 
-    def get_all_counts(self, key, slot):
+    async def get_all_counts(self, key, slot):
         """
         Retrieves all request counts for a given key (user/token) and time slot from Redis.
 
@@ -36,11 +36,11 @@ class RedisRequestStore(RequestStore):
             dict: A dictionary where the keys are the time slots (int) and the values are
             the corresponding request counts (int) for each slot.
         """
-        request_counts = self.r.hgetall(key)
+        request_counts = await self.r.hgetall(key)
         # Convert the request counts from Redis' bytes format to integers
         return {int(k): int(v) for k, v in request_counts.items()}
 
-    def update_counts(self, key, slot, ttl):
+    async def update_counts(self, key, slot, ttl):
         """
         Increments the request count for the given key and time slot in Redis and sets a TTL (time-to-live)
         for the specific slot to expire after the given interval.
@@ -51,10 +51,10 @@ class RedisRequestStore(RequestStore):
             ttl (int): Time-to-live for the slot, which defines how long the slot will persist in Redis.
         """
         # Increment the request count for the given key and slot in Redis
-        self.r.hincrby(key, slot, 1)
+        await self.r.hincrby(key, slot, 1)
         # Set the expiration for the slot using a custom Redis command to clear the count after TTL
         # This command is supported from Redis 7.4.0 onwards
-        self.r.execute_command(f"HEXPIREAT {key} {slot + ttl} FIELDS 1 {slot}")
+        await self.r.execute_command(f"HEXPIREAT {key} {slot + ttl} FIELDS 1 {slot}")
 
 
 # Initialize RedisRequestStore with the Redis URL and number of slots from the settings configuration

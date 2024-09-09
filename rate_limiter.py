@@ -1,7 +1,13 @@
 from stores.config_store import config_store
+from stores.lru_store import LRUStore
 from stores.request_store import RequestStore
 import settings
 import math
+
+
+def get_cache_key(slot, unique_token):
+    cache_key = f"{unique_token}-{slot}"
+    return cache_key
 
 
 class RateLimiter:
@@ -13,6 +19,7 @@ class RateLimiter:
         request_store (RequestStore): Object to manage and store request counts.
         num_slots (int): Number of time slots to track requests. Default is 10.
         config_store: Configuration store to access rate limiter settings.
+        blocked_tokens_cache: Cache to store blocked tokens in a given time slot.
     """
 
     def __init__(self, request_store: RequestStore, num_slots=10, config=config_store):
@@ -27,6 +34,7 @@ class RateLimiter:
         self.request_store = request_store
         self.num_slots = num_slots
         self.config_store = config
+        self.blocked_tokens_cache = LRUStore(capacity=10000)
 
     @property
     def config(self):
@@ -64,7 +72,7 @@ class RateLimiter:
         """
         return int(now * 10) // self.config.interval
 
-    def get_requests_available(self, unique_token: str, now: int):
+    async def get_requests_available(self, unique_token: str, now: int):
         """
         Determines the number of requests available to a token for the current time slot.
 
@@ -76,7 +84,7 @@ class RateLimiter:
             int: The number of requests remaining for the user/token based on rate limits.
         """
         slot = self.get_slot(now)
-        request_counts = self.request_store.get_all_counts(unique_token, slot)
+        request_counts = await self.request_store.get_all_counts(unique_token, slot)
         if not request_counts:
             # If no requests are found, return the limit
             return self.config.limit
@@ -91,7 +99,7 @@ class RateLimiter:
 
         return self.config.limit - count
 
-    def is_rate_limited(self, unique_token, now, background_tasks):
+    async def is_rate_limited(self, unique_token, now):
         """
         Checks if the user/token is rate limited at the current time.
 
@@ -103,29 +111,43 @@ class RateLimiter:
         Returns:
             bool: True if the user/token is rate-limited, False otherwise.
         """
-        status = self.get_requests_available(unique_token, now) <= 0
+        slot = self.get_slot(now)
+        # Get the blocked status from the cache
+        if self.is_blocked_cached(unique_token, slot):
+            return True
 
-        if not status:
-            # Update the request counts only if not rate-limited
-            if settings.DO_UPDATES_IN_BACKGROUND and False:
-                background_tasks.add_task(self.update_counts, unique_token, now)
-            else:
-                self.update_counts(unique_token, now)
-        return status
+        # Ideally update the request counts only if not rate-limited
+        # But there is an edge case, where we might update the counts if even after hitting the limit
+        await self.update_counts(unique_token, slot)
 
-    def update_counts(self, key, now):
+        available_requests = await self.get_requests_available(unique_token, now)
+
+        if available_requests <= 0:
+            self.set_blocked_cache(unique_token, slot)
+        return available_requests < 0
+
+    async def update_counts(self, key, slot):
         """
         Updates the request count for a specific user/token and time slot.
 
         Args:
             key (str): Unique identifier for the user/token.
-            now (int): Current time.
+            slot (int): Current timeslot.
 
         Returns:
             Updated count in the request store.
         """
-        slot = self.get_slot(now)
-        return self.request_store.update_counts(key, slot, self.config.interval)
+        return await self.request_store.update_counts(key, slot, self.config.interval)
+
+    def is_blocked_cached(self, unique_token, slot):
+        cache_key = get_cache_key(slot, unique_token)
+        if self.blocked_tokens_cache.get(cache_key):
+            return True
+        return False
+
+    def set_blocked_cache(self, unique_token, slot):
+        cache_key = get_cache_key(slot, unique_token)
+        self.blocked_tokens_cache.set(cache_key, True)
 
 
 # Instantiate RateLimiter with appropriate storage based on settings
