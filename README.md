@@ -17,20 +17,19 @@ This project provides a FastAPI-based service for rate limiting. It allows users
 ### Prerequisites
 
 - Python 3.x (tested on Python 3.9)
-- `pip` (Python package installer)
 - [Redis 7.4.0](https://redis.io/download)
 
 ### Steps
 
 1. Clone the repository:
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/dharmaraopv/rate_limiter
    cd rate_limiter
    ```
 
 2. Create and activate a virtual environment:
    ```bash
-   python -m venv .venv
+   python3.9 -m venv .venv
    source .venv/bin/activate  # On Windows: .venv\Scripts\activate
    ```
 
@@ -54,7 +53,7 @@ This project provides a FastAPI-based service for rate limiting. It allows users
     ENV=redis uvicorn main:app --reload
    ```
    
-7. Access the API documentation via [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs).
+7. Read the API documentation and try apis via [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs).
 
 ## API Endpoints
 
@@ -77,7 +76,7 @@ This project provides a FastAPI-based service for rate limiting. It allows users
 - **Path Parameter**:
   - `unique_token` (string): A unique identifier for the user.
   
-- **Response**: `True` if the user is rate-limited, otherwise `False`.
+- **Response**: `true` if the user is rate-limited, otherwise `false`.
 
 ## Project Structure
 
@@ -99,30 +98,12 @@ This project provides a FastAPI-based service for rate limiting. It allows users
 - **`tests/`**: Test cases for the application.
 - **`config.json`**: Stores rate limiting configurations.
 
-## Running with Redis
-
-To run the application with Redis as the request tracking store:
-
-1. **Install Redis 7.4.0**:
-   - Download and install Redis from [Redis Downloads](https://redis.io/download).
-
-2. **Start Redis**:
-   ```bash
-   redis-server
-   ```
-
-3. **Set the environment variables**:
-   In the `.env` file or environment variables, configure the store type and Redis connection details:
-   ```bash
-   STORE_TYPE=redis
-   REDIS_HOST=localhost
-   REDIS_PORT=6379
-   ```
-
-4. **Run the FastAPI server**:
-   ```bash
-   uvicorn main:app --reload
-   ```
+## Documentation
+[Here's](https://dharmapv.notion.site/Design-Document-Rate-limiting-service-cb24a3158d5d40dfa824c79421bc0e34?pvs=4) more detailed design document.
+Links to specific sections:
+* [Design considerations](https://dharmapv.notion.site/Design-Document-Rate-limiting-service-cb24a3158d5d40dfa824c79421bc0e34#3929186f15c34bd08092dc499544f3c6)
+* [Request flow](https://dharmapv.notion.site/Design-Document-Rate-limiting-service-cb24a3158d5d40dfa824c79421bc0e34#3cd616d05fc841a99c9102f0274f362f)
+* [Edge Cases](https://dharmapv.notion.site/Design-Document-Rate-limiting-service-cb24a3158d5d40dfa824c79421bc0e34#2ab92dfa753b41e8a6f71539b8f787b3)
 
 ## Testing
 
