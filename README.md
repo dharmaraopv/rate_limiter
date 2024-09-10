@@ -1,6 +1,3 @@
-
----
-
 # Rate Limiter API
 
 This project provides a FastAPI-based service for rate limiting. It allows users to configure rate limit settings and check if a specific user (identified by a unique token) is rate-limited based on those configurations.
