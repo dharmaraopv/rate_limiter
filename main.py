@@ -28,7 +28,6 @@ async def is_rate_limited(
 ):
     """
     Endpoint to check if a user is rate-limited based on their unique token.
-    :param background_tasks: Task handler for background updates.
     :param unique_token: The unique identifier for the user.
     :return: Boolean indicating if the user is rate-limited. Returns "true" or "false" in the api response
     """

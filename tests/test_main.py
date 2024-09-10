@@ -4,10 +4,12 @@ import unittest
 from fastapi.testclient import TestClient
 from main import app
 
-client = TestClient(app)
+sync_client = TestClient(app)
+
 
 def get_async_client():
     return AsyncClient(transport=ASGITransport(app), base_url="http://test")
+
 
 class TestRateLimiter(unittest.IsolatedAsyncioTestCase):
     """
@@ -22,7 +24,7 @@ class TestRateLimiter(unittest.IsolatedAsyncioTestCase):
         Verifies that the configuration is applied and returned as expected.
         """
         # Send a POST request to configure the rate limiter
-        response = client.post("/api/configure", json={"interval": 60, "limit": 10})
+        response = sync_client.post("/api/configure", json={"interval": 60, "limit": 10})
 
         # Ensure the request was successful (status code 200)
         self.assertEqual(response.status_code, 200)
@@ -80,7 +82,7 @@ class TestRateLimiter(unittest.IsolatedAsyncioTestCase):
         }
 
         # Make a POST request with invalid data
-        response = client.post("/api/configure", json=invalid_payload)
+        response = sync_client.post("/api/configure", json=invalid_payload)
 
         # Ensure that the response status is 422 Unprocessable Entity (validation error)
         self.assertEqual(response.status_code, 422)
@@ -99,7 +101,7 @@ class TestRateLimiter(unittest.IsolatedAsyncioTestCase):
         }
 
         # Make a POST request with invalid data
-        response = client.post("/api/configure", json=invalid_payload)
+        response = sync_client.post("/api/configure", json=invalid_payload)
 
         # Ensure that the response status is 422 Unprocessable Entity (validation error)
         self.assertEqual(response.status_code, 422)
@@ -115,7 +117,7 @@ class TestRateLimiter(unittest.IsolatedAsyncioTestCase):
         invalid_token = "x" * 101  # Invalid token (more than 100 characters)
 
         # Make a GET request with an invalid token
-        response = client.get(f"/api/is_rate_limited/{invalid_token}")
+        response = sync_client.get(f"/api/is_rate_limited/{invalid_token}")
 
         # Ensure that the response status is 422 Unprocessable Entity (validation error)
         self.assertEqual(response.status_code, 422)
@@ -131,7 +133,7 @@ class TestRateLimiter(unittest.IsolatedAsyncioTestCase):
         invalid_token = ""
 
         # Make a GET request with an empty token
-        response = client.get(f"/api/is_rate_limited/{invalid_token}")
+        response = sync_client.get(f"/api/is_rate_limited/{invalid_token}")
 
         # Ensure that the response status is 404
         self.assertEqual(response.status_code, 404)

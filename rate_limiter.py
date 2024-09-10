@@ -2,7 +2,6 @@ from stores.config_store import config_store
 from stores.lru_store import LRUStore
 from stores.request_store import RequestStore
 import settings
-import math
 
 
 def get_cache_key(slot, unique_token):
@@ -46,20 +45,6 @@ class RateLimiter:
         """
         return self.config_store.get_config()
 
-    def partial_count_oldest_slot(self, now, oldest_count):
-        """
-        Calculates a partial count for requests in the oldest time slot,
-        adjusting based on how far into the interval the current time is.
-
-        Args:
-            now (int): Current time (in seconds or appropriate time unit).
-            oldest_count (int): Count of requests in the oldest time slot.
-
-        Returns:
-            int: Adjusted count of requests for the oldest slot.
-        """
-        return math.ceil(oldest_count * (1 - (now * 10 % self.config.interval) / self.config.interval))
-
     def get_slot(self, now):
         """
         Calculates which time slot the current time falls into.
@@ -89,13 +74,8 @@ class RateLimiter:
             # If no requests are found, return the limit
             return self.config.limit
 
-        count = 0
-        # Check if there are requests in the oldest slot and adjust them accordingly
-        if slot - self.num_slots + 1 in request_counts:
-            count = self.partial_count_oldest_slot(now, request_counts.pop(slot - self.num_slots + 1))
-
         # Sum up the remaining requests from other slots
-        count += sum(request_counts.values())
+        count = sum(request_counts.values())
 
         return self.config.limit - count
 
@@ -105,8 +85,7 @@ class RateLimiter:
 
         Args:
             unique_token (str): Unique identifier for the user/token.
-            now (int): Current time.
-            background_tasks: Task scheduler to handle updating counts in the background.
+            now (float): Current time.
 
         Returns:
             bool: True if the user/token is rate-limited, False otherwise.

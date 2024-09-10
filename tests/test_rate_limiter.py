@@ -66,22 +66,6 @@ class RateLimiterFunctionalTest(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(await rate_limiter.is_rate_limited("123", start_time + 10.1))
 
     @pytest.mark.anyio
-    async def test_rate_limiter_allow_requests_based_on_partial_count_in_previous_window(self):
-        """
-        Test that the rate limiter allows requests when the partial count from the previous window is within the limit.
-
-        This test ensures that the carry-over from the last slot of the previous window does not result in rate-limiting
-        if within the limit.
-        """
-        rate_limiter = RateLimiter(InMemRequestStore(), 10)
-
-        # Set the rate limit to 2 requests over 10 seconds.
-        config_store.set_config(Config(interval=10, limit=2))
-        self.assertFalse(await rate_limiter.is_rate_limited("123", start_time + 1.0))
-        self.assertFalse(await rate_limiter.is_rate_limited("123", start_time + 1.0))
-        self.assertFalse(await rate_limiter.is_rate_limited("123", start_time + 10.6))
-
-    @pytest.mark.anyio
     async def test_rate_limiter_disallow_requests_in_new_window_based_intermediate_slots(self):
         """
         Test that the rate limiter disallows requests in intermediate slots of the current window when the limit is hit.
@@ -99,7 +83,7 @@ class RateLimiterFunctionalTest(unittest.IsolatedAsyncioTestCase):
     @pytest.mark.anyio
     async def test_rate_limiter_allow_requests_in_new_window_based_intermediate_slots(self):
         """
-        Test that the rate limiter allows requests in intermediate slots of the current window when the limit is not hit.
+        Test that the rate limiter allows requests in intermediate slots of the current window when the limit is not hit
 
         This test ensures that intermediate slots within a new window allow requests if the limit is not exceeded.
         """
@@ -151,13 +135,6 @@ class RateLimiterUnitTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(config.interval, 60)
         self.assertEqual(config.limit, 100)
 
-    def test_partial_count_oldest_slot(self):
-        # Testing partial count calculation with known values
-        now = 123
-        oldest_count = 50
-        partial_count = self.rate_limiter.partial_count_oldest_slot(now, oldest_count)
-        self.assertEqual(partial_count, 25)
-
     def test_get_slot(self):
         # Testing slot calculation
         now = 123
@@ -187,13 +164,10 @@ class RateLimiterUnitTest(unittest.IsolatedAsyncioTestCase):
         now = 123
         self.mock_config.interval = 60
 
-        # Partial count for the oldest slot
-        self.rate_limiter.partial_count_oldest_slot = MagicMock(return_value=15)
-
         requests_available = await self.rate_limiter.get_requests_available(unique_token, now)
 
         # Expect limit minus the total count of requests
-        total_requests = 15 + 30
+        total_requests = 50
         self.assertEqual(requests_available, self.mock_config.limit - total_requests)
 
     @pytest.mark.anyio
@@ -268,7 +242,6 @@ class RateLimiterUnitTest(unittest.IsolatedAsyncioTestCase):
         unique_token = 'user123'
         slot = 5
 
-
         # Call update_counts
         await self.rate_limiter.update_counts(unique_token, slot)
 
@@ -323,6 +296,7 @@ class RateLimiterUnitTest(unittest.IsolatedAsyncioTestCase):
         cache_key = get_cache_key(slot, unique_token)
 
         self.assertEqual(cache_key, expected_cache_key)
+
 
 if __name__ == '__main__':
     unittest.main()

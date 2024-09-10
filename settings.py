@@ -1,10 +1,10 @@
 import os
 from dotenv import load_dotenv
 
-ENV = os.getenv("ENV", "redis")
+ENV = os.getenv("ENV", "in_mem")
 load_dotenv(f"./env/{ENV}")
 
-print (f"ENV: {ENV}")
+print(f"ENV: {ENV}")
 
 STORAGE_TYPE = os.getenv("STORAGE_TYPE", "in_memory")  # redis or in_memory
 REDIS_URL = os.getenv("REDIS_URL", "redis://default:redispw@localhost:55000")
