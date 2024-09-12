@@ -78,13 +78,15 @@ This project provides a FastAPI-based service for rate limiting. It allows users
 
 ```plaintext
 ├── rate_limiter/
-│   ├── __pycache__/
 │   ├── stores/
+│   │   ├── config_store.py
+│   │   ├── lru_store.py
+│   │   ├── redis_request_store.py
+│   │   ├── request_store.py 
 │   ├── tests/
 │   ├── main.py
 │   ├── rate_limiter.py
 │   ├── settings.py
-│   ├── config.json
 │   └── requirements.txt
 ```
 
